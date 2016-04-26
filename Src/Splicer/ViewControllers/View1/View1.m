@@ -22,7 +22,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [self performSelector:@selector(showcamera) withObject:nil afterDelay:0.3];
+    [self performSelector:@selector(showcamera) withObject:nil afterDelay:1.0];
 
 }
 
@@ -38,12 +38,13 @@
         imagePickerController.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
         
         UIView *controllerView = imagePickerController.view;
-        [controllerView setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height / 2)];
+        [controllerView setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
         
         controllerView.alpha = 0.0;
         //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
         
-        [[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
+        [self.view addSubview:controllerView];
+        //[[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
         
         [UIView animateWithDuration:0.3
                               delay:0.0

@@ -17,9 +17,9 @@
 
 @property View1 *view1;
 @property View2 *view2;
-@property (strong) UIImagePickerController *imagePickerController;
+@property (strong, nonatomic) UIImagePickerController *imagePickerController;
 
-@property (strong) UIImagePickerController *imagePickerController2;
+@property (strong, nonatomic) UIImagePickerController *imagePickerController2;
 
 @end
 
@@ -34,25 +34,24 @@
 
 - (IBAction)capture:(id)sender {
     
-    self.view1 = [self.storyboard instantiateViewControllerWithIdentifier:@"view1"];
+    /*self.view1 = [self.storyboard instantiateViewControllerWithIdentifier:@"view1"];
     [self addChildViewController:self.view1];
-    [self.view1.view setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
+    [self.view1.view setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height / 2)];
     [self.view addSubview:self.view1.view];
     [self.view1 didMoveToParentViewController:self];
     
     self.view2 = [self.storyboard instantiateViewControllerWithIdentifier:@"view2"];
     [self addChildViewController:self.view2];
-    [self.view2.view setFrame:CGRectMake(0, self.view.frame.size.height, self.view.frame.size.width, self.view.frame.size.height)];
+    [self.view2.view setFrame:CGRectMake(0, self.view.frame.size.height / 2, self.view.frame.size.width, self.view.frame.size.height / 2)];
     [self.view addSubview:self.view2.view];
-    [self.view2 didMoveToParentViewController:self];
+    [self.view2 didMoveToParentViewController:self];*/
   
     
     
     ///
     
     
-//    [self performSelector:@selector(showcamera) withObject:nil afterDelay:0.3];
-//    [self performSelector:@selector(showcamera2) withObject:nil afterDelay:0.6];
+    [self performSelector:@selector(showcamera) withObject:nil afterDelay:1.0];
 
 //    imagePickerController = [[UIImagePickerController alloc] init];
 //    
@@ -84,54 +83,81 @@
 
 - (void) showcamera {
     
-    imagePickerController = [[UIImagePickerController alloc] init];
-    imagePickerController.sourceType = UIImagePickerControllerCameraDeviceFront;
-    //imagePickerController.showsCameraControls = YES;
-    imagePickerController.delegate = self;
-    imagePickerController.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
+    if ([UIImagePickerController isSourceTypeAvailable: UIImagePickerControllerSourceTypeCamera]) {
+        
+        imagePickerController = nil;
+        imagePickerController = [[UIImagePickerController alloc] init];
+        imagePickerController.sourceType = UIImagePickerControllerCameraDeviceFront;
+        imagePickerController.allowsEditing = NO;
+        //imagePickerController.showsCameraControls = YES;
+        imagePickerController.delegate = self;
+        imagePickerController.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
+        
+        UIView *controllerView = imagePickerController.view;
+        [controllerView setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height / 2)];
+        
+        controllerView.alpha = 0.0;
+        //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
+        
+        [self.view addSubview:controllerView];
+        //[[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
+        
+        [UIView animateWithDuration:0.3
+                              delay:0.0
+                            options:UIViewAnimationOptionCurveLinear
+                         animations:^{
+                             controllerView.alpha = 1.0;
+                         }
+                         completion:nil
+         ];
+    } else {
+        
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:nil message:@"I'm afraid there's no camera on this device!" delegate:nil cancelButtonTitle:@"Dang!" otherButtonTitles:nil, nil];
+        [alertView show];
+    }
     
-    UIView *controllerView = imagePickerController.view;
-    [controllerView setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height / 2)];
+    [self performSelector:@selector(showcamera2) withObject:nil afterDelay:5.0];
+
     
-    controllerView.alpha = 0.0;
-    //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
-    
-    [[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
-    
-    [UIView animateWithDuration:0.3
-                          delay:0.0
-                        options:UIViewAnimationOptionCurveLinear
-                     animations:^{
-                         controllerView.alpha = 1.0;
-                     }
-                     completion:nil
-     ];
 }
 
 - (void) showcamera2 {
     
-    imagePickerController2 = [[UIImagePickerController alloc] init];
-    imagePickerController2.sourceType = UIImagePickerControllerCameraDeviceRear;
-    //imagePickerController2.showsCameraControls = YES;
-    imagePickerController2.delegate = self;
-    imagePickerController2.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
+    if ([UIImagePickerController isSourceTypeAvailable: UIImagePickerControllerSourceTypeCamera]) {
+        
+        imagePickerController2 = nil;
+
+        imagePickerController2 = [[UIImagePickerController alloc] init];
+        imagePickerController2.sourceType = UIImagePickerControllerCameraDeviceFront;
+        imagePickerController2.allowsEditing = NO;
+        //imagePickerController2.showsCameraControls = YES;
+        imagePickerController2.delegate = self;
+        imagePickerController2.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
+        
+        UIView *controllerView = imagePickerController2.view;
+        [controllerView setFrame:CGRectMake(0, self.view.frame.size.height / 2, self.view.frame.size.width, self.view.frame.size.height / 2)];
+        
+        controllerView.alpha = 0.0;
+        //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
+        
+        [self.view addSubview:controllerView];
+        //[[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
+        
+        [UIView animateWithDuration:0.3
+                              delay:0.0
+                            options:UIViewAnimationOptionCurveLinear
+                         animations:^{
+                             controllerView.alpha = 1.0;
+                         }
+                         completion:nil
+         ];
+    } else {
+        
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:nil message:@"I'm afraid there's no camera on this device!" delegate:nil cancelButtonTitle:@"Dang!" otherButtonTitles:nil, nil];
+        [alertView show];
+    }
     
-    UIView *controllerView = imagePickerController2.view;
-    [controllerView setFrame:CGRectMake(0, self.view.frame.size.height / 2, self.view.frame.size.width, self.view.frame.size.height / 2)];
-    
-    controllerView.alpha = 0.0;
-    //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
-    
-    [[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
-    
-    [UIView animateWithDuration:0.3
-                          delay:0.0
-                        options:UIViewAnimationOptionCurveLinear
-                     animations:^{
-                         controllerView.alpha = 1.0;
-                     }
-                     completion:nil
-     ];
+    [self performSelector:@selector(showcamera) withObject:nil afterDelay:5.0];
     
 }
 
