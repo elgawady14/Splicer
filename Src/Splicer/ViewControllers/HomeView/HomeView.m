@@ -34,20 +34,25 @@
 
 - (IBAction)capture:(id)sender {
     
-//    self.view1 = [self.storyboard instantiateViewControllerWithIdentifier:@"view1"];
-//    [self addChildViewController:self.view1];
-//    [self.view1.view setFrame:CGRectMake(0.0f, 0.0f, 200, 200)];
-//    [self.view addSubview:self.view1.view];
-//    [self.view1 didMoveToParentViewController:self];
-//    
-//    self.view2 = [self.storyboard instantiateViewControllerWithIdentifier:@"view2"];
-//    [self addChildViewController:self.view2];
-//    [self.view2.view setFrame:CGRectMake(200.0f, 200.0f, 200, 200)];
-//    [self.view addSubview:self.view2.view];
-//    [self.view2 didMoveToParentViewController:self];
+    self.view1 = [self.storyboard instantiateViewControllerWithIdentifier:@"view1"];
+    [self addChildViewController:self.view1];
+    [self.view1.view setFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
+    [self.view addSubview:self.view1.view];
+    [self.view1 didMoveToParentViewController:self];
     
-    [self performSelector:@selector(showcamera2) withObject:nil afterDelay:0.3];
-    [self performSelector:@selector(showcamera) withObject:nil afterDelay:0.6];
+    self.view2 = [self.storyboard instantiateViewControllerWithIdentifier:@"view2"];
+    [self addChildViewController:self.view2];
+    [self.view2.view setFrame:CGRectMake(0, self.view.frame.size.height, self.view.frame.size.width, self.view.frame.size.height)];
+    [self.view addSubview:self.view2.view];
+    [self.view2 didMoveToParentViewController:self];
+  
+    
+    
+    ///
+    
+    
+//    [self performSelector:@selector(showcamera) withObject:nil afterDelay:0.3];
+//    [self performSelector:@selector(showcamera2) withObject:nil afterDelay:0.6];
 
 //    imagePickerController = [[UIImagePickerController alloc] init];
 //    
@@ -106,7 +111,7 @@
 - (void) showcamera2 {
     
     imagePickerController2 = [[UIImagePickerController alloc] init];
-    imagePickerController2.sourceType = UIImagePickerControllerCameraDeviceFront;
+    imagePickerController2.sourceType = UIImagePickerControllerCameraDeviceRear;
     //imagePickerController2.showsCameraControls = YES;
     imagePickerController2.delegate = self;
     imagePickerController2.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
