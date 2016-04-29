@@ -7,7 +7,15 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Utils.h"
 
-@interface HomeView : UIViewController
+@class CaptureManager, AVCamPreviewView, AVCaptureVideoPreviewLayer;
+
+@interface HomeView : UIViewController <UIImagePickerControllerDelegate, UINavigationControllerDelegate>
+
+@property (nonatomic, assign) float maxDuration;
+@property (nonatomic,assign) BOOL showCameraSwitch;
+
+- (void)saveVideoWithCompletionBlock:(void(^)(BOOL success))completion;
 
 @end
