@@ -21,11 +21,12 @@
 @property (nonatomic, strong) IBOutlet UIView *videoPreviewView;
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 @property (weak, nonatomic) IBOutlet UIButton *buttonStartStopRecord;
+@property (weak, nonatomic) IBOutlet UIButton *buttonSwitchCam;
 
 
 
 //Exporting progress
-@property (nonatomic,strong) UIView *progressView;
+@property (nonatomic,strong) IBOutlet UIView *progressView;
 @property (nonatomic,strong) IBOutlet UIProgressView *progressBar;
 @property (nonatomic,strong) IBOutlet UILabel *progressLabel;
 @property (nonatomic,strong) IBOutlet UIActivityIndicatorView *activityView;
@@ -113,6 +114,9 @@
             
             self.viewDotPoint.layer.masksToBounds = YES;
             self.viewDotPoint.layer.cornerRadius = 2.5;
+            
+            self.progressView.layer.masksToBounds = YES;
+            self.progressView.layer.cornerRadius = 7;
         }
     }
     
@@ -135,11 +139,7 @@
     
     if (![[[self captureManager] recorder] isRecording])
     {
-        // update UI start record button.
-        
-        [self.buttonStartStopRecord setBackgroundImage:[UIImage imageNamed:@"icon-record-stop.png"] forState:UIControlStateNormal];
-        
-        NSLog(@"START");
+        [self beginRecordUIChanges];
         
         [[self captureManager] startRecording];
         
@@ -147,20 +147,42 @@
 
     }
     else if ([[[self captureManager] recorder] isRecording]) {
-        
-        // update UI start record button.
-        
-        [self.buttonStartStopRecord setBackgroundImage:[UIImage imageNamed:@"player_record.png"] forState:UIControlStateNormal];
-        
+
+        [self stopRecordUIChanges];
+
         [self.durationTimer invalidate];
         [[self captureManager] stopRecording];
-        self.videoPreviewView.layer.borderColor = [UIColor clearColor].CGColor;
-        
-        NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
-        
         [self.timeTimer invalidate];
         self.counter = 0;
+        
+        NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
+
     }
+}
+
+- (void) beginRecordUIChanges {
+    
+    // update UI.
+    
+    [self.buttonStartStopRecord setBackgroundImage:[UIImage imageNamed:@"icon-record-stop.png"] forState:UIControlStateNormal];
+    
+    self.buttonSwitchCam.hidden = YES;
+}
+
+- (void) stopRecordUIChanges {
+    
+    // update UI start record button.
+    
+    [self.buttonStartStopRecord setBackgroundImage:[UIImage imageNamed:@"player_record.png"] forState:UIControlStateNormal];
+    
+    self.buttonSwitchCam.hidden = NO;
+    
+    self.videoPreviewView.layer.borderColor = [UIColor clearColor].CGColor;
+    
+    self.labelTime.text = @"00:00:00";
+    
+    self.viewDotPoint.hidden = YES;
+
 }
 
 - (void) timeTimerChanged {
@@ -170,7 +192,7 @@
     if (self.counter % 2 == 0) {
         
         self.viewDotPoint.hidden = NO;
-        self.videoPreviewView.layer.borderWidth = 2.0;
+        self.videoPreviewView.layer.borderWidth = 5.0;
     } else {
         
         self.viewDotPoint.hidden = YES;
@@ -211,6 +233,7 @@
     else {
         [strGenerated appendString:[NSString stringWithFormat: @"%i ", seconds]];
     }
+    
     // update UI
     
     self.labelTime.text = strGenerated;
@@ -225,7 +248,7 @@
         self.duration = self.duration + 1;
         [self.durationProgressBar setProgress:(self.duration/self.maxDuration) animated:YES];
         NSLog(@"self.duration %f, self.progressBar %f", self.duration, self.durationProgressBar.progress);
-        if (self.duration > self.maxDuration) {
+        if (self.duration == self.maxDuration) {
             
             //$$$ passed 2 minutes so what ... ? :):):)
             
@@ -233,7 +256,7 @@
             self.durationTimer = nil;
             [[self captureManager] stopRecording];
             
-            [self saveVideo];
+            [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
         }
     }
     else
@@ -296,7 +319,7 @@
 - (void)captureManagerRecordingBegan:(CaptureManager *)captureManager
 {
     self.videoPreviewView.layer.borderColor = [UIColor redColor].CGColor;
-    self.videoPreviewView.layer.borderWidth = 2.0;
+    self.videoPreviewView.layer.borderWidth = 5.0;
     self.durationTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(updateDuration) userInfo:nil repeats:YES];
 }
 
@@ -305,9 +328,9 @@
     self.progressView.hidden = NO;
     self.progressBar.hidden = NO;
     self.activityView.hidden = YES;
-    self.progressLabel.text = @"Creating the video";
+    self.progressLabel.text = @"Compressing the video";
     self.progressBar.progress = self.captureManager.exportSession.progress;
-    if (self.duration > self.maxDuration) {
+    if (self.progressBar.progress > .99) {
         [self.captureManager.exportProgressBarTimer invalidate];
         self.captureManager.exportProgressBarTimer = nil;
     }
@@ -316,6 +339,8 @@
 - (void) removeProgress
 {
     self.progressBar.hidden = YES;
+    self.activityView.hidden = NO;
+
     [self.activityView startAnimating];
     self.progressLabel.text = @"Saving to Camera Roll";
 }
