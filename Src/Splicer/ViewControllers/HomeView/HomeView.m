@@ -42,6 +42,8 @@
 @property (nonatomic,strong) NSTimer *timeTimer;
 @property (weak, nonatomic) IBOutlet UILabel *labelTime;
 @property int counter;
+@property int savedVideos;
+
 @property (weak, nonatomic) IBOutlet UIView *viewDotPoint;
 
 @end
@@ -71,9 +73,10 @@
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
     
-    self.maxDuration = 10.0f;
+    self.maxDuration = 120.0f;
     self.duration = 0.0f;
     self.counter = 0;
+    self.savedVideos = 0;
 
 }
 
@@ -125,6 +128,11 @@
              name:UIDeviceOrientationDidChangeNotification
              object:[UIDevice currentDevice]];
             
+            [[NSNotificationCenter defaultCenter]
+             addObserver:self selector:@selector(appWillResignActive:)
+             name:UIApplicationWillResignActiveNotification
+             object:nil];
+            
         }
     }
     
@@ -157,6 +165,32 @@
     };
 }
 
+- (void) appWillResignActive:(NSNotification*)note
+{
+    // app entered background state.
+    
+    if ([[[self captureManager] recorder] isRecording]) {
+        
+        [self.durationTimer invalidate];
+        [self.timeTimer invalidate];
+        
+        [self stopRecordUIChanges];
+        
+        // set flag value to avoid saving the recorded file before calling [[self captureManager] stopRecording];
+        
+        Utils *utils = [Utils getInstance];
+        utils.buttonStopTapped = true;
+        
+        [[self captureManager] stopRecording];
+        self.counter = 0;
+        self.duration = 0.0f;
+        
+        NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
+        
+    }
+    
+}
+
 //-(BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
 //    return uiin(toInterfaceOrientation);
 //}
@@ -175,28 +209,27 @@
     {
         [self beginRecordUIChanges];
         
-        [[self captureManager] startRecording];
-        
         self.timeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(timeTimerChanged) userInfo:nil repeats:YES];
+
+        [[self captureManager] startRecording];
 
     }
     else if ([[[self captureManager] recorder] isRecording]) {
 
+        [self.durationTimer invalidate];
+        [self.timeTimer invalidate];
+        
         [self stopRecordUIChanges];
 
-        [self.durationTimer invalidate];
-        
         // set flag value to avoid saving the recorded file before calling [[self captureManager] stopRecording];
         
         Utils *utils = [Utils getInstance];
         utils.buttonStopTapped = true;
         
         [[self captureManager] stopRecording];
-        [self.timeTimer invalidate];
         self.counter = 0;
         self.duration = 0.0f;
 
-        
         NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
 
     }
@@ -292,19 +325,27 @@
         self.duration = self.duration + 1;
         [self.durationProgressBar setProgress:(self.duration/self.maxDuration) animated:YES];
         NSLog(@"self.duration %f, self.progressBar %f", self.duration, self.durationProgressBar.progress);
-        if (self.duration == self.maxDuration) {
+        
+        if (((int)self.duration % (int)self.maxDuration) == 0) {
             
-            //$$$ passed 2 minutes so what ... ? :):):)
-            
-            [self stopRecordUIChanges];
-            
-            [self.durationTimer invalidate];
-            [[self captureManager] stopRecording];
-            [self.timeTimer invalidate];
-            self.counter = 0;
-            self.duration = 0.0f;
-            
-            [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
+            if (self.savedVideos != 2) {
+                
+                [self.durationTimer invalidate];
+                self.duration = 0.0f;
+                [[self captureManager] stopRecording];
+                
+                // save locally.
+                
+                [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
+           
+            } else {
+                
+                // save on cloud.
+                // TODO
+                
+                NSLog(@"save it on icloud.");
+                
+            }
         }
     }
     else
@@ -316,14 +357,32 @@
 
 - (void) saveVideo {
     
+    [self stopRecordUIChanges];
+    
     [self saveVideoWithCompletionBlock:^(BOOL success) {
         
         if (success)
         {
+            self.savedVideos++;
+            
             NSLog(@"WILL FIND NEW VIDEO IN YOUR CAM ROLL. :) ");
             
+            [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:1.0];
         }
     }];
+}
+
+- (void) beginRecordingAgain {
+    
+    // start recording the next section.
+    
+    if (![[[self captureManager] recorder] isRecording])
+    {
+        [self beginRecordUIChanges];
+        
+        [[self captureManager] startRecording];
+        
+    }
 }
 - (void)saveVideoWithCompletionBlock:(void(^)(BOOL success))completion {
     
@@ -368,7 +427,9 @@
 {
     self.videoPreviewView.layer.borderColor = [UIColor redColor].CGColor;
     self.videoPreviewView.layer.borderWidth = 5.0;
+    
     self.durationTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(updateDuration) userInfo:nil repeats:YES];
+    
 }
 
 - (void) updateProgress
