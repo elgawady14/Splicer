@@ -13,7 +13,9 @@
 #import <AVFoundation/AVFoundation.h>
 
 @interface HomeView () <UIImagePickerControllerDelegate, UINavigationControllerDelegate>
-
+{
+    AVCaptureVideoPreviewLayer *newCaptureVideoPreviewLayer;
+}
 #pragma mark - UI CONTROLS & PROPERITIES
 
 // Recording
@@ -69,7 +71,7 @@
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
     
-    self.maxDuration = 5.0f;
+    self.maxDuration = 10.0f;
     self.duration = 0.0f;
     self.counter = 0;
 
@@ -87,7 +89,7 @@
         if ([[self captureManager] setupSession]) {
             
             // Create video preview layer and add it to the UI
-            AVCaptureVideoPreviewLayer *newCaptureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:[[self captureManager] session]];
+            newCaptureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:[[self captureManager] session]];
             
             CALayer *viewLayer = self.videoPreviewView.layer;
             [viewLayer setMasksToBounds:YES];
@@ -117,6 +119,12 @@
             
             self.progressView.layer.masksToBounds = YES;
             self.progressView.layer.cornerRadius = 7;
+            
+            [[NSNotificationCenter defaultCenter]
+             addObserver:self selector:@selector(orientationChanged:)
+             name:UIDeviceOrientationDidChangeNotification
+             object:[UIDevice currentDevice]];
+            
         }
     }
     
@@ -126,6 +134,30 @@
     
     return YES;
 }
+
+- (void) orientationChanged:(NSNotification *)note
+{
+    UIDevice * device = note.object;
+    switch(device.orientation)
+    {
+        case UIDeviceOrientationPortrait:
+                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
+            break;
+            
+        case UIDeviceOrientationLandscapeLeft:
+            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+            break;
+        case UIDeviceOrientationLandscapeRight:
+            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+            break;
+        default:
+            break;
+    };
+}
+
+//-(BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
+//    return uiin(toInterfaceOrientation);
+//}
 
 #pragma mark - UI METHODS
 
@@ -154,6 +186,8 @@
         [[self captureManager] stopRecording];
         [self.timeTimer invalidate];
         self.counter = 0;
+        self.duration = 0.0f;
+
         
         NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
 
@@ -182,6 +216,8 @@
     self.labelTime.text = @"00:00:00";
     
     self.viewDotPoint.hidden = YES;
+    
+    self.durationProgressBar.progress = 0.0;
 
 }
 
