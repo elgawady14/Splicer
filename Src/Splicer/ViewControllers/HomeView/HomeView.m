@@ -147,9 +147,11 @@
         case UIDeviceOrientationLandscapeLeft:
             [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
             break;
+            
         case UIDeviceOrientationLandscapeRight:
             [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
             break;
+            
         default:
             break;
     };
@@ -183,6 +185,12 @@
         [self stopRecordUIChanges];
 
         [self.durationTimer invalidate];
+        
+        // set flag value to avoid saving the recorded file before calling [[self captureManager] stopRecording];
+        
+        Utils *utils = [Utils getInstance];
+        utils.buttonStopTapped = true;
+        
         [[self captureManager] stopRecording];
         [self.timeTimer invalidate];
         self.counter = 0;
@@ -288,9 +296,13 @@
             
             //$$$ passed 2 minutes so what ... ? :):):)
             
+            [self stopRecordUIChanges];
+            
             [self.durationTimer invalidate];
-            self.durationTimer = nil;
             [[self captureManager] stopRecording];
+            [self.timeTimer invalidate];
+            self.counter = 0;
+            self.duration = 0.0f;
             
             [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
         }
