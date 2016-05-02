@@ -8,6 +8,10 @@
 
 #import <UIKit/UIKit.h>
 #import "Utils.h"
+#import "GTLYouTube.h"
+#import "UploadController.h"
+#import "YouTubeGetUploads.h"
+#import "YouTubeUploadVideo.h"
 
 @class CaptureManager, AVCamPreviewView, AVCaptureVideoPreviewLayer;
 
@@ -15,7 +19,9 @@
 
 @property (nonatomic, assign) float maxDuration;
 @property (nonatomic,assign) BOOL showCameraSwitch;
+@property (nonatomic, strong) GTLServiceYouTube *youtubeService;
 
 - (void)saveVideoWithCompletionBlock:(void(^)(BOOL success))completion;
+- (void) notificationUrlGenerated:(NSNotification *) notification;
 
 @end

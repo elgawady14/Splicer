@@ -10,9 +10,11 @@
 #include "Utils.h"
 #import "CaptureManager.h"
 #import "AVCamRecorder.h"
+#import "PXAlertView.h"
+#import "YouTubeUploadVideo.h"
 #import <AVFoundation/AVFoundation.h>
 
-@interface HomeView () <UIImagePickerControllerDelegate, UINavigationControllerDelegate>
+@interface HomeView () <UIImagePickerControllerDelegate, UINavigationControllerDelegate, YouTubeUploadVideoDelegate>
 {
     AVCaptureVideoPreviewLayer *newCaptureVideoPreviewLayer;
 }
@@ -43,8 +45,12 @@
 @property (weak, nonatomic) IBOutlet UILabel *labelTime;
 @property int counter;
 @property int savedVideos;
-
 @property (weak, nonatomic) IBOutlet UIView *viewDotPoint;
+
+// YOUTUBE UPLOAD
+
+@property(nonatomic, strong) YouTubeUploadVideo *uploadVideo;
+
 
 @end
 
@@ -54,6 +60,7 @@
 
 
 @implementation HomeView
+@synthesize youtubeService;
 
 #pragma mark - VIEW METHODS
 
@@ -73,10 +80,12 @@
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
     
-    self.maxDuration = 120.0f;
+    self.maxDuration = 5.0f;
     self.duration = 0.0f;
     self.counter = 0;
     self.savedVideos = 0;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notificationUrlGenerated:) name:@"urlGenerated" object:nil];
 
 }
 
@@ -417,6 +426,42 @@
 
 }
 
+#pragma mark - YOUTUBE API
+
+- (void) notificationUrlGenerated:(NSNotification *) notification {
+    
+    [PXAlertView showAlertWithTitle: @"Info" message: @"You'll be notified after uploading this section on your youtube channel." cancelTitle:@"OK ☑️" completion: nil];
+    
+    _uploadVideo = [[YouTubeUploadVideo alloc] init];
+    _uploadVideo.delegate = self;
+    NSURL *VideoUrl = [notification object];
+    
+    NSData *fileData = [NSData dataWithContentsOfURL:VideoUrl];
+    NSString *title;
+    NSString *description;
+    
+    NSDateFormatter *dateFormat = [[NSDateFormatter alloc] init];
+    [dateFormat setDateFormat:@"'Test Video Uploaded ('EEEE MMMM d, YYYY h:mm a, zzz')"];
+    title = [dateFormat stringFromDate:[NSDate date]];
+    
+    description = @"This is test";
+    
+    if (self.youtubeService != nil) {
+        
+        [self.uploadVideo uploadYouTubeVideoWithService:self.youtubeService
+                                               fileData:fileData
+                                                  title:title
+                                            description:description];
+    }
+}
+
+- (void)uploadYouTubeVideo:(YouTubeUploadVideo *)uploadVideo
+      didFinishWithResults:(GTLYouTubeVideo *)video {
+    
+    [PXAlertView showAlertWithTitle: @"Successfully 😃" message: @"Successfully uploaded the third section on Youtube so check it on your channel. 👍" cancelTitle:@"OK ☑️" completion: nil];
+    
+}
+
 @end
 
 #pragma mark - CaptureManagerDelegate
@@ -478,70 +523,11 @@
     //Do something
 }
 
+
+
+
 @end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*- (void) showcamera2 {
- 
-    if ([UIImagePickerController isSourceTypeAvailable: UIImagePickerControllerSourceTypeCamera]) {
- 
-        imagePickerController2 = nil;
-
-        imagePickerController2 = [[UIImagePickerController alloc] init];
-        imagePickerController2.sourceType = UIImagePickerControllerCameraDeviceFront;
-        imagePickerController2.allowsEditing = NO;
-        //imagePickerController2.showsCameraControls = YES;
-        imagePickerController2.delegate = self;
-        imagePickerController2.mediaTypes = [NSArray arrayWithObjects:(NSString *)kUTTypeMovie, nil];
-        
-        UIView *controllerView = imagePickerController2.view;
-        [controllerView setFrame:CGRectMake(0, self.view.frame.size.height / 2, self.view.frame.size.width, self.view.frame.size.height / 2)];
-        
-        controllerView.alpha = 0.0;
-        //controllerView.transform = CGAffineTransformMakeScale(0.25, 0.25);
-        
-        [self.view addSubview:controllerView];
-        //[[[[UIApplication sharedApplication] delegate] window] addSubview:controllerView];
-        
-        [UIView animateWithDuration:0.3
-                              delay:0.0
-                            options:UIViewAnimationOptionCurveLinear
-                         animations:^{
-                             controllerView.alpha = 1.0;
-                         }
-                         completion:nil
-         ];
-    } else {
-        
-        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:nil message:@"I'm afraid there's no camera on this device!" delegate:nil cancelButtonTitle:@"Dang!" otherButtonTitles:nil, nil];
-        [alertView show];
-    }
-    
-    [self performSelector:@selector(showcamera) withObject:nil afterDelay:5.0];
-    
-}*/
 
 
 
