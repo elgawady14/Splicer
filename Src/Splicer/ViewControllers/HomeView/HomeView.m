@@ -13,11 +13,21 @@
 #import "PXAlertView.h"
 #import "YouTubeUploadVideo.h"
 #import <AVFoundation/AVFoundation.h>
+#import <CoreLocation/CoreLocation.h>
 
-@interface HomeView () <UIImagePickerControllerDelegate, UINavigationControllerDelegate, YouTubeUploadVideoDelegate>
+@interface HomeView () <UIImagePickerControllerDelegate, UINavigationControllerDelegate, YouTubeUploadVideoDelegate, CLLocationManagerDelegate>
 {
     AVCaptureVideoPreviewLayer *newCaptureVideoPreviewLayer;
+    
+    // location
+    
+    CLLocationManager *locationManager;
+    CLGeocoder *geocoder;
+    CLPlacemark *placemark;
+    NSString *returnedAddressLocation;
+
 }
+
 #pragma mark - UI CONTROLS & PROPERITIES
 
 // Recording
@@ -70,7 +80,6 @@
     
     [self preSettings];
     
-    [self setupUI];
 }
 
 - (void) preSettings {
@@ -85,8 +94,26 @@
     self.counter = 0;
     self.savedVideos = 0;
     
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notificationUrlGenerated:) name:@"urlGenerated" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notificationUrlGenerated:) name: @"urlGenerated" object:nil];
+    
+    [self setupUI];
 
+    if (locationManager == nil)
+    {
+        locationManager = [[CLLocationManager alloc] init];
+
+    }
+    // get permision for fetching user current location;
+    
+    // Check for iOS 8. Without this guard the code will crash with "unknown selector" on iOS 7.
+    if ([locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+        
+        [locationManager requestWhenInUseAuthorization];
+    }
+    
+    // fetch user current location;
+    
+    [self getMyLocation];
 }
 
 - (void) setupUI {
@@ -460,6 +487,71 @@
     
     [PXAlertView showAlertWithTitle: @"Successfully 😃" message: @"Successfully uploaded the third section on Youtube so check it on your channel. 👍" cancelTitle:@"OK ☑️" completion: nil];
     
+}
+
+#pragma mark - LOCATION SERVICES
+
+- (void) getMyLocation {
+    
+    geocoder = [[CLGeocoder alloc] init];
+    locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+    locationManager.delegate = self;
+    
+    
+    [locationManager startUpdatingLocation];
+    
+    NSLog(@"Updating location started...");
+
+}
+
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
+    if (locations.count > 0) {
+        CLLocation *currentLocation = [locations objectAtIndex:0];
+        
+        [manager stopUpdatingLocation];
+        
+        [geocoder reverseGeocodeLocation:currentLocation completionHandler:^(NSArray *placemarks, NSError *error)
+         {
+             if (!(error))
+             {
+                 placemark = [placemarks lastObject];
+                 
+                 NSArray *lines = placemark.addressDictionary[ @"FormattedAddressLines"];
+                 NSString *str=@"";
+                 for (int i=0; i<lines.count; i++) {
+                     if (i==lines.count-1) {
+                         str=[str stringByAppendingString:lines[i]];
+                     } else {
+                         str=[str stringByAppendingString:[NSString stringWithFormat:@"%@, ",lines[i]]];
+                     }
+                 }
+                 NSLog(@"location address %@",str);
+                 returnedAddressLocation=str;
+                 
+                 if ([returnedAddressLocation length]>0) {
+                     Utils *ut = [Utils getInstance];
+                     ut.returnedAddressLocation = returnedAddressLocation;
+                 }
+                 
+                 [PXAlertView showAlertWithTitle: @"SUCCESSFULLY 📍" message: [NSString stringWithFormat:@"Your current location has been detected 🌏, %@", returnedAddressLocation] cancelTitle:@"OK ✔️" completion: nil];
+
+                 NSLog(@"placemark :: %@",[placemark description]);
+                 
+             }
+             else
+             {
+                 [PXAlertView showAlertWithTitle: @"Info  😔📍" message: @"Unfortunately your current location not deteced 🌏" cancelTitle:@"OK ✔️" completion: nil];
+                 
+             }
+         }];
+    }
+}
+
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
+{
+    
+    [PXAlertView showAlertWithTitle: @"Info 📍" message: @"Unfortunately your current location not deteced 😔" cancelTitle:@"OK ☑️" completion: nil];
+
 }
 
 @end
