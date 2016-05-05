@@ -93,6 +93,8 @@
     self.duration = 0.0f;
     self.counter = 0;
     self.savedVideos = 0;
+    Utils *ut = [Utils getInstance];
+    ut.videosAlreadySaved = self.savedVideos;
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notificationUrlGenerated:) name: @"urlGenerated" object:nil];
     
@@ -364,24 +366,13 @@
         
         if (((int)self.duration % (int)self.maxDuration) == 0) {
             
-            if (self.savedVideos != 2) {
-                
-                [self.durationTimer invalidate];
-                self.duration = 0.0f;
-                [[self captureManager] stopRecording];
-                
-                // save locally.
-                
-                [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
-           
-            } else {
-                
-                // save on cloud.
-                // TODO
-                
-                NSLog(@"save it on icloud.");
-                
-            }
+            [self.durationTimer invalidate];
+            self.duration = 0.0f;
+            [[self captureManager] stopRecording];
+            
+            // save locally or on cloud :).
+            
+            [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
         }
     }
     else
@@ -400,6 +391,9 @@
         if (success)
         {
             self.savedVideos++;
+            
+            Utils *ut = [Utils getInstance];
+            ut.videosAlreadySaved = self.savedVideos;
             
             NSLog(@"WILL FIND NEW VIDEO IN YOUR CAM ROLL. :) ");
             
