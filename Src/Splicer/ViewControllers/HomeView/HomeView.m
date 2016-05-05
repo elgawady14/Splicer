@@ -93,7 +93,7 @@
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
     
-    self.maxDuration = 5.0f;
+    self.maxDuration = 10.0f;
     self.duration = 0.0f;
     self.counter = 0;
     self.savedVideos = 0;
@@ -115,10 +115,6 @@
         
         [locationManager requestWhenInUseAuthorization];
     }
-    
-    // fetch user current location;
-    
-    [self getMyLocation];
 }
 
 - (void) setupUI {
@@ -361,11 +357,20 @@
 {
     if ([[[self captureManager] recorder] isRecording])
     {
+        if (self.duration == self.maxDuration - 10) {
+            
+            // fetch user current location;
+            
+            [self getMyLocation];
+        }
+        
         self.duration = self.duration + 1;
         [self.durationProgressBar setProgress:(self.duration/self.maxDuration) animated:YES];
         NSLog(@"self.duration %f, self.progressBar %f", self.duration, self.durationProgressBar.progress);
         
         if (((int)self.duration % (int)self.maxDuration) == 0) {
+            
+            [self showDetectLocationMessage];
             
             [self.durationTimer invalidate];
             self.duration = 0.0f;
@@ -380,6 +385,17 @@
     {
         [self.durationTimer invalidate];
         self.durationTimer = nil;
+    }
+}
+
+- (void) showDetectLocationMessage {
+    
+    if (utils.returnedAddressLocation != nil) {
+        
+        [PXAlertView showAlertWithTitle: @"SUCCESSFULLY 📍" message: [NSString stringWithFormat:@"Your current location has been detected 🌏, %@", returnedAddressLocation] cancelTitle:@"OK ✔️" completion: nil];
+    } else {
+        
+        [PXAlertView showAlertWithTitle: @"Info  😔📍" message: @"Unfortunately your current location not deteced 🌏" cancelTitle:@"OK ✔️" completion: nil];
     }
 }
 
@@ -542,15 +558,14 @@
                      Utils *ut = [Utils getInstance];
                      ut.returnedAddressLocation = returnedAddressLocation;
                  }
-                 
-                 [PXAlertView showAlertWithTitle: @"SUCCESSFULLY 📍" message: [NSString stringWithFormat:@"Your current location has been detected 🌏, %@", returnedAddressLocation] cancelTitle:@"OK ✔️" completion: nil];
 
                  NSLog(@"placemark :: %@",[placemark description]);
                  
              }
              else
              {
-                 [PXAlertView showAlertWithTitle: @"Info  😔📍" message: @"Unfortunately your current location not deteced 🌏" cancelTitle:@"OK ✔️" completion: nil];
+                 Utils *ut = [Utils getInstance];
+                 ut.returnedAddressLocation = nil;
                  
              }
          }];
@@ -559,9 +574,7 @@
 
 - (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
 {
-    
     [PXAlertView showAlertWithTitle: @"Info 📍" message: @"Unfortunately your current location not deteced 😔" cancelTitle:@"OK ☑️" completion: nil];
-
 }
 
 @end
