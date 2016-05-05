@@ -25,6 +25,8 @@
     CLGeocoder *geocoder;
     CLPlacemark *placemark;
     NSString *returnedAddressLocation;
+    
+    Utils *utils;
 
 }
 
@@ -84,6 +86,8 @@
 
 - (void) preSettings {
     
+    utils = [Utils getInstance];
+    
     if (IOS7)
     {
         self.edgesForExtendedLayout = UIRectEdgeNone;
@@ -93,8 +97,7 @@
     self.duration = 0.0f;
     self.counter = 0;
     self.savedVideos = 0;
-    Utils *ut = [Utils getInstance];
-    ut.videosAlreadySaved = self.savedVideos;
+    utils.videosAlreadySaved = self.savedVideos;
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(notificationUrlGenerated:) name: @"urlGenerated" object:nil];
     
@@ -216,7 +219,6 @@
         
         // set flag value to avoid saving the recorded file before calling [[self captureManager] stopRecording];
         
-        Utils *utils = [Utils getInstance];
         utils.buttonStopTapped = true;
         
         [[self captureManager] stopRecording];
@@ -261,7 +263,6 @@
 
         // set flag value to avoid saving the recorded file before calling [[self captureManager] stopRecording];
         
-        Utils *utils = [Utils getInstance];
         utils.buttonStopTapped = true;
         
         [[self captureManager] stopRecording];
@@ -392,11 +393,16 @@
         {
             self.savedVideos++;
             
-            Utils *ut = [Utils getInstance];
-            ut.videosAlreadySaved = self.savedVideos;
+            utils.videosAlreadySaved = self.savedVideos;
             
-            NSLog(@"WILL FIND NEW VIDEO IN YOUR CAM ROLL. :) ");
-            
+            if (utils.videosAlreadySaved != 2) {
+
+                NSLog(@"WILL FIND NEW VIDEO IN YOUR CAM ROLL. :) ");
+            }
+            else {
+                
+                NSLog(@"Currently saving on cloud :) ");
+            }
             [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:1.0];
         }
     }];
@@ -422,7 +428,10 @@
         
         if (completion)
         {
-            self.progressLabel.text = @"Saved To Photo Album";
+            if (utils.videosAlreadySaved != 2) {
+                
+                self.progressLabel.text = @"Saved To Photo Album";
+            }
             [weakSelf performSelector:@selector(refresh) withObject:nil afterDelay:0.5];
             
         }
@@ -451,7 +460,7 @@
 
 - (void) notificationUrlGenerated:(NSNotification *) notification {
     
-    [PXAlertView showAlertWithTitle: @"Info" message: @"You'll be notified after uploading this section on your youtube channel." cancelTitle:@"OK ☑️" completion: nil];
+    [PXAlertView showAlertWithTitle: @"Info ⌛️" message: @"Be calm ⛱ You'll be notified after uploading the third section on your YouTube channel." cancelTitle:@"OK ☑️" completion: nil];
     
     _uploadVideo = [[YouTubeUploadVideo alloc] init];
     _uploadVideo.delegate = self;
@@ -462,10 +471,12 @@
     NSString *description;
     
     NSDateFormatter *dateFormat = [[NSDateFormatter alloc] init];
-    [dateFormat setDateFormat:@"'Test Video Uploaded ('EEEE MMMM d, YYYY h:mm a, zzz')"];
+    [dateFormat setDateFormat:@"'Splicer Third Section taken at ('EEEE MMMM d, YYYY h:mm a, zzz')"];
+    //[dateFormat setDateFormat:@"'Test Video Uploaded ('EEEE MMMM d, YYYY h:mm a, zzz')"];
+
     title = [dateFormat stringFromDate:[NSDate date]];
     
-    description = @"This is test";
+    description = @"Splicer is iOS app used in splicing video streams recorded by iPad camera where saving all sections on device (locally) except the third section uploaded on user YouTube channel. Happy Splicing ^_^";
     
     if (self.youtubeService != nil) {
         
@@ -479,8 +490,13 @@
 - (void)uploadYouTubeVideo:(YouTubeUploadVideo *)uploadVideo
       didFinishWithResults:(GTLYouTubeVideo *)video {
     
-    [PXAlertView showAlertWithTitle: @"Successfully 😃" message: @"Successfully uploaded the third section on Youtube so check it on your channel. 👍" cancelTitle:@"OK ☑️" completion: nil];
-    
+    if (video != nil) {
+        
+        [PXAlertView showAlertWithTitle: @"Successfully  👍" message: @"Third section uploaded on YouTube; you can check it on your channel 😎" cancelTitle:@"OK ☑️" completion: nil];
+    } else {
+        
+        [PXAlertView showAlertWithTitle: @"Unfortunately 😔" message: @"Sorry, an error ocurred while uploading the video on your YouTube channel." cancelTitle:@"OK ☑️" completion: nil];
+    }
 }
 
 #pragma mark - LOCATION SERVICES
@@ -579,10 +595,16 @@
 - (void) removeProgress
 {
     self.progressBar.hidden = YES;
-    self.activityView.hidden = NO;
+    
+    int x = [[Utils getInstance] videosAlreadySaved];
+    if ([[Utils getInstance] videosAlreadySaved] != 2) {
+        
+        self.activityView.hidden = NO;
+        
+        [self.activityView startAnimating];
+        self.progressLabel.text = @"Saving to Camera Roll";
+    }
 
-    [self.activityView startAnimating];
-    self.progressLabel.text = @"Saving to Camera Roll";
 }
 
 - (void)captureManager:(CaptureManager *)captureManager didFailWithError:(NSError *)error
