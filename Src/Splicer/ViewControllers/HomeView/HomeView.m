@@ -34,7 +34,10 @@
 
 // Recording
 @property (nonatomic, strong) CaptureManager *captureManager;
-@property (nonatomic, strong) IBOutlet UIView *videoPreviewView;
+//@property (nonatomic, strong) UIView *videoPreviewView;
+@property (weak, nonatomic) IBOutlet UIView *videoPreviewView;
+@property (weak, nonatomic) IBOutlet UIView *viewVerticalHeader;
+
 @property (nonatomic, strong) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 @property (weak, nonatomic) IBOutlet UIButton *buttonStartStopRecord;
 @property (weak, nonatomic) IBOutlet UIButton *buttonSwitchCam;
@@ -79,7 +82,8 @@
 - (void)viewDidLoad {
     
     [super viewDidLoad];
-    
+    [self.videoPreviewView setAutoresizingMask:UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight];
+
     [self preSettings];
     
 }
@@ -93,7 +97,6 @@
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
     
-    self.maxDuration = 10.0f;
     self.duration = 0.0f;
     self.counter = 0;
     self.savedVideos = 0;
@@ -131,16 +134,18 @@
             // Create video preview layer and add it to the UI
             newCaptureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:[[self captureManager] session]];
             
+            //self.videoPreviewView = [[UIView alloc]init];
+            self.videoPreviewView.frame =  CGRectMake(0.0, 0.0, self.view.frame.size.width, self.view.frame.size.height);
             CALayer *viewLayer = self.videoPreviewView.layer;
             [viewLayer setMasksToBounds:YES];
-            
+            [self.view addSubview:self.videoPreviewView];
+            [self.view sendSubviewToBack:self.videoPreviewView];
+
             CGRect bounds = self.videoPreviewView.bounds;
             [newCaptureVideoPreviewLayer setFrame:bounds];
             
             if ([newCaptureVideoPreviewLayer.connection isVideoOrientationSupported]) {
                 [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
-                //$$$$ [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
-                
             }
             
             [newCaptureVideoPreviewLayer setVideoGravity:AVLayerVideoGravityResizeAspectFill];
@@ -180,6 +185,11 @@
     return YES;
 }
 
+-(BOOL)shouldAutorotate {
+    
+    return NO;
+}
+
 - (void) orientationChanged:(NSNotification *)note
 {
     UIDevice * device = note.object;
@@ -201,6 +211,28 @@
             break;
     };
 }
+
+-(void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    
+    // You can store size in an instance variable for later
+    //currentSize = size;
+    
+    // This is basically an animation block
+    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        
+        // Get the new orientation if you want
+        // UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+        
+        // Adjust your views
+        
+        
+    } completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        // Anything else you need to do at the end
+        
+    }];
+}
+
 
 - (void) appWillResignActive:(NSNotification*)note
 {
@@ -248,6 +280,10 @@
         self.timeTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(timeTimerChanged) userInfo:nil repeats:YES];
 
         [[self captureManager] startRecording];
+        
+        // fetch user current location;
+        
+        [self getMyLocation];
 
     }
     else if ([[[self captureManager] recorder] isRecording]) {
@@ -357,12 +393,6 @@
 {
     if ([[[self captureManager] recorder] isRecording])
     {
-        if (self.duration == self.maxDuration - 10) {
-            
-            // fetch user current location;
-            
-            [self getMyLocation];
-        }
         
         self.duration = self.duration + 1;
         [self.durationProgressBar setProgress:(self.duration/self.maxDuration) animated:YES];
@@ -371,7 +401,7 @@
         if (((int)self.duration % (int)self.maxDuration) == 0) {
             
             [self showDetectLocationMessage];
-            
+
             [self.durationTimer invalidate];
             self.duration = 0.0f;
             [[self captureManager] stopRecording];
@@ -392,10 +422,11 @@
     
     if (utils.returnedAddressLocation != nil) {
         
-        [PXAlertView showAlertWithTitle: @"SUCCESSFULLY 📍" message: [NSString stringWithFormat:@"Your current location has been detected 🌏, %@", returnedAddressLocation] cancelTitle:@"OK ✔️" completion: nil];
+        PXAlertView *x = [PXAlertView showAlertWithTitle: @"SUCCESSFULLY 📍" message: [NSString stringWithFormat:@"Your current location has been detected 🌏, %@", returnedAddressLocation] cancelTitle:nil completion: nil];
+        [x setTapToDismissEnabled: YES];
     } else {
         
-        [PXAlertView showAlertWithTitle: @"Info  😔📍" message: @"Unfortunately your current location not deteced 🌏" cancelTitle:@"OK ✔️" completion: nil];
+        [PXAlertView showAlertWithTitle: @"Info  😔📍" message: @"Unfortunately your current location not deteced 🌏" cancelTitle:nil completion: nil];
     }
 }
 
@@ -411,6 +442,8 @@
             
             utils.videosAlreadySaved = self.savedVideos;
             
+            [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:1.0];
+            
             if (utils.videosAlreadySaved != 2) {
 
                 NSLog(@"WILL FIND NEW VIDEO IN YOUR CAM ROLL. :) ");
@@ -419,9 +452,10 @@
                 
                 NSLog(@"Currently saving on cloud :) ");
             }
-            [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:1.0];
         }
     }];
+    
+
 }
 
 - (void) beginRecordingAgain {
@@ -434,6 +468,9 @@
         
         [[self captureManager] startRecording];
         
+        // fetch user current location;
+        
+        [self getMyLocation];
     }
 }
 - (void)saveVideoWithCompletionBlock:(void(^)(BOOL success))completion {
@@ -609,7 +646,6 @@
 {
     self.progressBar.hidden = YES;
     
-    int x = [[Utils getInstance] videosAlreadySaved];
     if ([[Utils getInstance] videosAlreadySaved] != 2) {
         
         self.activityView.hidden = NO;
