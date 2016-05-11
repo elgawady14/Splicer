@@ -27,6 +27,8 @@
     NSString *returnedAddressLocation;
     
     Utils *utils;
+    NSMutableArray *ma;
+
 
 }
 
@@ -144,9 +146,15 @@
             CGRect bounds = self.videoPreviewView.bounds;
             [newCaptureVideoPreviewLayer setFrame:bounds];
             
-            if ([newCaptureVideoPreviewLayer.connection isVideoOrientationSupported]) {
+            if ([[UIDevice currentDevice] orientation] == UIDeviceOrientationPortraitUpsideDown)
+                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
+            if ([[UIDevice currentDevice] orientation] == UIDeviceOrientationPortrait)
                 [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
-            }
+            else if ([[UIDevice currentDevice] orientation] == UIDeviceOrientationLandscapeLeft)
+                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+            else if ([[UIDevice currentDevice] orientation] == UIDeviceOrientationLandscapeRight)
+                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+
             
             [newCaptureVideoPreviewLayer setVideoGravity:AVLayerVideoGravityResizeAspectFill];
             
@@ -192,24 +200,24 @@
 
 - (void) orientationChanged:(NSNotification *)note
 {
-    UIDevice * device = note.object;
-    switch(device.orientation)
-    {
-        case UIDeviceOrientationPortrait:
-                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
-            break;
-            
-        case UIDeviceOrientationLandscapeLeft:
-            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
-            break;
-            
-        case UIDeviceOrientationLandscapeRight:
-            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
-            break;
-            
-        default:
-            break;
-    };
+//    UIDevice * device = note.object;
+//    switch(device.orientation)
+//    {
+//        case UIDeviceOrientationPortrait:
+//                [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationPortrait];
+//            break;
+//            
+//        case UIDeviceOrientationLandscapeLeft:
+//            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+//            break;
+//            
+//        case UIDeviceOrientationLandscapeRight:
+//            [newCaptureVideoPreviewLayer.connection setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+//            break;
+//            
+//        default:
+//            break;
+//    };
 }
 
 -(void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
@@ -238,7 +246,7 @@
 {
     // app entered background state.
     
-    if ([[[self captureManager] recorder] isRecording]) {
+    //if ([[[self captureManager] recorder] isRecording]) {
         
         [self.durationTimer invalidate];
         [self.timeTimer invalidate];
@@ -252,10 +260,12 @@
         [[self captureManager] stopRecording];
         self.counter = 0;
         self.duration = 0.0f;
+        self.savedVideos = 0;
+        utils.videosAlreadySaved = 0;
         
         NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
         
-    }
+    //}
     
 }
 
@@ -302,7 +312,32 @@
         self.duration = 0.0f;
 
         NSLog(@"END number of pieces %lu", (unsigned long)[self.captureManager.assets count]);
+        
+        [self saveSomeVideos];
 
+    }
+}
+
+- (void) saveSomeVideos {
+    
+    
+    if (self.savedVideos == 0) {
+        
+        ma = [[NSMutableArray alloc] initWithArray:self.captureManager.assets];
+
+    }
+    
+    if (self.savedVideos < ma.count) {
+        
+        self.captureManager.assets = [NSMutableArray new];
+        
+        [self.captureManager.assets addObject:[ma objectAtIndex:self.savedVideos]];
+        
+        // save locally or on cloud :).
+        
+        [self saveVideo];
+        
+        //[self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
     }
 }
 
@@ -406,9 +441,13 @@
             self.duration = 0.0f;
             [[self captureManager] stopRecording];
             
+            //$
+            [self stopRecordUIChanges];
+            [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:0.4];
+
             // save locally or on cloud :).
             
-            [self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
+            //[self performSelector:@selector(saveVideo) withObject:nil afterDelay:1.0];
         }
     }
     else
@@ -442,7 +481,9 @@
             
             utils.videosAlreadySaved = self.savedVideos;
             
-            [self performSelector:@selector(beginRecordingAgain) withObject:nil afterDelay:1.0];
+            [self saveSomeVideos];
+            
+            //[self performSelector:@selector(saveSomeVideos) withObject:nil afterDelay:1.0];
             
             if (utils.videosAlreadySaved != 2) {
 
